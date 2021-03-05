@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package articleCurator;
+
+service MessageQueue {
+    rpc sendMessage (ClientMessage) returns (ServerAcknowledgement);
+    rpc subscribeToTopic(stream ClientResponse) returns (stream ServerMessage);
+}
+
+message ClientMessage {
+    string topic = 1;
+    string data = 2;
+    bool isPersistent = 3;
+}
+
+message ServerAcknowledgement {
+    bool received = 1;
+}
+
+message ClientResponse {
+    string messageType = 1;
+    string payload = 2;
+}
+
+message ServerMessage {
+    string id = 1;
+    string data = 2;
+}

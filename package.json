@@ -1,0 +1,27 @@
+{
+  "name": "simplemq",
+  "version": "0.0.1",
+  "description": "A simple message queue server that requires only nodejs",
+  "main": "src/server.js",
+  "scripts": {
+    "jest": "wait-on tcp:38000 && jest --forceExit --detectOpenHandles",
+    "start": "node src/server.js",
+    "test": "npm start & npm run jest"
+  },
+  "keywords": [
+    "gRPC",
+    "message",
+    "queue"
+  ],
+  "author": "Martin Ahindura",
+  "license": "MIT",
+  "dependencies": {
+    "@grpc/proto-loader": "^0.5.6",
+    "grpc": "^1.24.5"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.20",
+    "jest": "26.6.3",
+    "wait-on": "^5.2.1"
+  }
+}
