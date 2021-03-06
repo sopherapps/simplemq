@@ -45,12 +45,20 @@ One can chose to use any or both of these two components.
   touch server.js
   ```
 
-- In `server.js` file, import the server component from `simplemq` and call its start method,
-  specifying the `port` to run on
+- In `server.js` file, import the server component from `simplemq` and call its start method
+  with one argument i.e. the `config` which specifies:
+
+  - the `port` to run on
+  - the `ttl` i.e. time to live in milliseconds for the messages before they are considered stale
+  - the `ttlInterval` i.e. the interval in milliseconds for clearing out stale messages
 
   ```Javascript
   const {server} = require('simplemq');
-  server.start(30999); // 30999 is the port
+  server.start({
+      port: 38000, // Default 38000
+      ttl: 1000 * 60 * 60 * 24 * 30, // Default 30 days
+      ttlInterval: 1000 * 60 * 60 * 24, // Default 1 day
+  });
   ```
 
 - Run the nodejs server script
@@ -82,8 +90,8 @@ One can chose to use any or both of these two components.
 
   client.listen({
       ipAddress: 'localhost', // the ip address, for now we will assume the server is on this computer
-      port: 30999, // the port as specified in the server code
-      interval: 1000, // receive messages at least every second
+      port: 38000, // Default is 38000, the port as specified in the server code
+      interval: 1000, // Default is 1000, receive messages at least every second
       clientId: 'ity65476t9ygyf', // some random identifier the server will use to identify this client everytime the client connects
   }, (err, message) => {
       if(err){
@@ -112,6 +120,21 @@ Coming soon.
   ```sh
   npm test
   ```
+
+## ToDo
+
+- [ ] Make lokijs persist to file
+- [ ] There might be need for removeSubscriber function
+- [ ] Modularize the DB module itself into TOPICS, MESSAGES AND SUBSCRIBERS
+- [ ] Add JavaScript client code
+- [ ] Create python client package
+- [ ] Create java client package
+- [ ] Add option to add certificates for authentication
+- [ ] Add option for broadcast messages that don't get persisted
+- [ ] Create sample app using simplemq
+- [ ] Create blog posts showing its use
+- [ ] Create videos showing its use
+- [ ] Create a cloud service for simplemq
 
 ## License
 
