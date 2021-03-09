@@ -5,8 +5,8 @@
   "main": "src/server.js",
   "scripts": {
     "jest": "wait-on tcp:38000 && jest --forceExit --detectOpenHandles",
-    "start": "node src/server.js",
-    "test": "npm start & npm run jest",
+    "server:start": "node src/utils/test-server.js",
+    "test": "npm run server:start & npm run jest",
     "eslint-init": "eslint --init"
   },
   "keywords": [

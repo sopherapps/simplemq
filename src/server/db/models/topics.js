@@ -2,7 +2,7 @@
  * Model for the topics
  */
 
-const Model = require("./base/model");
+const { Model } = require("../base/model");
 
 class Topics extends Model {
   constructor() {

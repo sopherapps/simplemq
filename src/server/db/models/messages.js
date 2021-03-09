@@ -2,7 +2,7 @@
  * Model for the messages
  */
 
-const Model = require("./base/model");
+const { Model } = require("../base/model");
 
 class Messages extends Model {
   constructor(ttl, ttlInterval) {

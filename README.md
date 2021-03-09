@@ -45,20 +45,26 @@ One can chose to use any or both of these two components.
   touch server.js
   ```
 
-- In `server.js` file, import the server component from `simplemq` and call its start method
-  with one argument i.e. the `config` which specifies:
+- In `server.js` file, import the Server component from `simplemq`, initialize it then call its start method.
+  The `options` passed on initiliazation include:
 
   - the `port` to run on
   - the `ttl` i.e. time to live in milliseconds for the messages before they are considered stale
   - the `ttlInterval` i.e. the interval in milliseconds for clearing out stale messages
+  - the `streamInterval` i.e. the interval at which messages are to be sent to any listening client
+  - the `dbFilePath` i.e. the path to the lokijs database to persist the messages, subscribers and topics
+  - the `isPersistent` i.e. whether to persist the data across restarts of the server
 
   ```Javascript
-  const {server} = require('simplemq');
-  server.start({
+  const {Server} = require('simplemq');
+  const server = new Server({
       port: 38000, // Default 38000
       ttl: 1000 * 60 * 60 * 24 * 30, // Default 30 days
       ttlInterval: 1000 * 60 * 60 * 24, // Default 1 day
+      ...
   });
+
+  server.start();
   ```
 
 - Run the nodejs server script
@@ -77,8 +83,9 @@ One can chose to use any or both of these two components.
 
 - Create the client file if you don't have one yet. Let's call it `client.js`
 
-- In `client.js`, import the client component from `simplemq` and call its listen method with two arguments, `config` and a `callback` function.
-  The `config` specifies:
+- In `client.js`, import the Client component from `simplemq` and initialize it with `options` and a `callback` function,
+  then call its listen method.
+  The `config` on initialization specifies:
 
   - the IP address (`ipAddress`) of the simplemq server
   - the `port` on which the simplemq server is running
@@ -86,9 +93,9 @@ One can chose to use any or both of these two components.
   - a random `clientId` to identify the client
 
   ```Javascript
-  const {client} = require('simplemq');
+  const {Client} = require('simplemq');
 
-  client.listen({
+  const client = new Client({
       ipAddress: 'localhost', // the ip address, for now we will assume the server is on this computer
       port: 38000, // Default is 38000, the port as specified in the server code
       interval: 1000, // Default is 1000, receive messages at least every second
@@ -101,6 +108,7 @@ One can chose to use any or both of these two components.
       console.log(message);
   });
 
+  client.listen();
   ```
 
 ## How To Contribute

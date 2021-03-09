@@ -21,10 +21,14 @@ class Model {
     this.avjObject = new Ajv({ allErrors: true });
     this.primaryField = primaryField;
     this.schema = {};
+    this.validate = this.avjObject.compile(this.schema);
 
     // Bindings for safety
     this.setCollection = this.setCollection.bind(this);
-    this.validate = this.avjObject.compile(this.schema);
+    this.addRecord = this.addRecord.bind(this);
+    this.getRecord = this.getRecord.bind(this);
+    this.updateRecords = this.updateRecords.bind(this);
+    this.replaceRecord = this.replaceRecord.bind(this);
   }
 
   /**
@@ -48,14 +52,28 @@ class Model {
     throw this.avjObject.errorsText(this.validate.errors);
   }
 
+  /**
+   * Gets a record from this model's collection
+   * @param {any} id - the id to be used to find that particular record
+   * @returns {any}
+   */
   getRecord(id) {
     return this.collection.find({ [this.primaryField]: id });
   }
 
-  updateRecord(id, updateFunction) {
-    this.collection.findAndUpdate({ [this.primaryField]: id }, updateFunction);
+  /**
+   * Updates the records that fit the criteria specified by the filterObject
+   * @param {{[key: string]: any}} filterObject - the mongodb like filter query for finding the records to update
+   * @param {(any)=> void} updateFunction - the update function that receives each given record and changes it accordingly
+   */
+  updateRecords(filterObject, updateFunction) {
+    this.collection.findAndUpdate(filterObject, updateFunction);
   }
 
+  /**
+   * Replaces a record of a given id with another record with that same id
+   * @param {any} newRecord - the new record with an existing id
+   */
   replaceRecord(newRecord) {
     this.collection.update(newRecord);
   }
