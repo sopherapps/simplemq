@@ -58,7 +58,7 @@ class Model {
    * @returns {any}
    */
   getRecord(id) {
-    return this.collection.find({ [this.primaryField]: id });
+    return this.collection.findOne({ [this.primaryField]: id });
   }
 
   /**

@@ -28,6 +28,7 @@ class Server {
     this.streamInterval = streamInterval;
     this.dbFilePath = dbFilePath;
     this.isPersistent = isPersistent;
+    this.server = null;
 
     // bind method
     this.start = this.start.bind(this);
@@ -41,12 +42,15 @@ class Server {
       const { articleCurator } = grpcObject;
 
       // the server
-      const server = new grpc.Server();
+      this.server = new grpc.Server();
       const serverIpAndPort = `0.0.0.0:${this.port}`;
-      server.bind(serverIpAndPort, grpc.ServerCredentials.createInsecure());
+      this.server.bind(
+        serverIpAndPort,
+        grpc.ServerCredentials.createInsecure()
+      );
 
       // Add services to the Server
-      server.addService(
+      this.server.addService(
         articleCurator.MessageQueue.service,
         grpcHandlerFactory(dbInstance, {
           streamInterval: this.streamInterval,
@@ -54,7 +58,7 @@ class Server {
       );
 
       // start the Server
-      server.start();
+      this.server.start();
       // eslint-disable-next-line no-console
       console.log(`Server running on ${serverIpAndPort}`);
     };

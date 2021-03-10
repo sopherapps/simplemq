@@ -66,7 +66,7 @@ function grpcHandlerFactory(db, options = {}) {
           // change TOPIC to SUBSCRIBE
           // Add another branch for UNSUBSCRIBE
           const topic = clientResponse.payload;
-          db.dbSubscribeToTopic(topic, clientId);
+          db.subscribeToTopic(topic, clientId);
           call.write({
             messageType: "TOPIC",
             payload: {
