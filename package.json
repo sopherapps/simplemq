@@ -4,9 +4,11 @@
   "description": "A simple message queue server that requires only nodejs",
   "main": "src/server.js",
   "scripts": {
-    "jest": "wait-on tcp:38000 && jest --forceExit --detectOpenHandles",
-    "server:start": "node src/utils/test-server.js",
-    "test": "npm run server:start & npm run jest",
+    "wait:jest": "wait-on tcp:38000 && npm run jest",
+    "jest": "jest --forceExit --detectOpenHandles --runInBand",
+    "server:start": "NODE_ENV=test node src/utils/test-server.js",
+    "wait:test": "npm run server:start & npm run wait:jest",
+    "test": "npm run jest",
     "eslint-init": "eslint --init"
   },
   "keywords": [

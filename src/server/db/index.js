@@ -189,6 +189,15 @@ class Database {
       delete record.messageIds[messageId];
     });
   }
+
+  clear() {
+    const models = Object.values(this.models);
+    // eslint-disable-next-line no-plusplus
+    for (let index = 0; index < models.length; index++) {
+      const model = models[index];
+      model.deleteRecords({});
+    }
+  }
 }
 
 module.exports = {

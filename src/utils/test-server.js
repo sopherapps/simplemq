@@ -1,4 +1,9 @@
 const { Server } = require("../index");
 
 const server = new Server();
-server.start();
+
+try {
+  server.start();
+} catch (error) {
+  server.stop();
+}

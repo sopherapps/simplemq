@@ -32,10 +32,15 @@ class Server {
 
     // bind method
     this.start = this.start.bind(this);
+    this.stop = this.stop.bind(this);
   }
 
   start() {
     const onDbInitialization = (dbInstance) => {
+      if (process.env.NODE_ENV && process.env.NODE_ENV.trim() === "test") {
+        dbInstance.clear();
+      }
+
       // Load gRPC package definitions
       const packageDefinition = protoLoader.loadSync(PROTOBUF_FILE_PATH, {});
       const grpcObject = grpc.loadPackageDefinition(packageDefinition);
@@ -61,6 +66,8 @@ class Server {
       this.server.start();
       // eslint-disable-next-line no-console
       console.log(`Server running on ${serverIpAndPort}`);
+      // eslint-disable-next-line no-console
+      console.log(`Environment NODE_ENV = ${process.env.NODE_ENV}`);
     };
 
     // Initialize the database, then on finishing, initialize the gRPC Server
@@ -70,6 +77,21 @@ class Server {
       { isPersistent: this.isPersistent },
       onDbInitialization
     );
+  }
+
+  /**
+   * Stops the server to receive no more requests
+   */
+  stop() {
+    if (this.server) {
+      this.server.tryShutdown(() => {
+        // eslint-disable-next-line no-console
+        console.log(`Server shutdown successful`);
+      });
+    } else {
+      // eslint-disable-next-line no-console
+      console.log("The server was not running");
+    }
   }
 }
 

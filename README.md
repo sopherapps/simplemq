@@ -45,7 +45,7 @@ One can chose to use any or both of these two components.
   touch server.js
   ```
 
-- In `server.js` file, import the Server component from `simplemq`, initialize it then call its start method.
+- In `server.js` file, import the Server component from `simplemq`, initialize it then call its `start` method, and its `stop` method to stop the server in case of an error e.g. a KeyboardInterrupt
   The `options` passed on initiliazation include:
 
   - the `port` to run on
@@ -64,7 +64,13 @@ One can chose to use any or both of these two components.
       ...
   });
 
-  server.start();
+  try {
+    server.start();
+  } catch {
+    if(server){
+      server.stop();
+    }
+  }
   ```
 
 - Run the nodejs server script
@@ -83,13 +89,12 @@ One can chose to use any or both of these two components.
 
 - Create the client file if you don't have one yet. Let's call it `client.js`
 
-- In `client.js`, import the Client component from `simplemq` and initialize it with `options` and a `callback` function,
-  then call its listen method.
+- In `client.js`, import the Client component from `simplemq` and initialize it with `options`
   The `config` on initialization specifies:
 
   - the IP address (`ipAddress`) of the simplemq server
-  - the `port` on which the simplemq server is running
-  - the `interval` in milliseconds at which to receive the messages
+  - the optional `port` on which the simplemq server is running. Default is 38000.
+  - the optional `interval` in milliseconds at which to receive the messages. Default is 1000.
   - a random `clientId` to identify the client
 
   ```Javascript
@@ -100,15 +105,84 @@ One can chose to use any or both of these two components.
       port: 38000, // Default is 38000, the port as specified in the server code
       interval: 1000, // Default is 1000, receive messages at least every second
       clientId: 'ity65476t9ygyf', // some random identifier the server will use to identify this client everytime the client connects
-  }, (err, message) => {
-      if(err){
-        throw err;
-      }
-      // do something with the message e.g. logging it to the terminal
-      console.log(message);
   });
+  ```
 
-  client.listen();
+- To connect to the remote server, call the `connect()` method of the client. Any attempt
+  to generate another producer or listener from the client before it is connected will throw an exception.
+
+  ```Javascript
+  client.connect();
+  ```
+
+- Then call the client's `getMessageProducer` method to get a message producer, with an `options` argument specifying:
+
+  - the `topic` - the topic to send to
+  - the optional `onError` - the error handler function
+  - the `onMessage` - the message handler
+
+  ```Javascript
+  const messageProducer = client.getMessageProducer({
+    topic: 'Some topic',
+    onError: (err)=>{console.error(err);}
+    onMessage: (message)=>{console.log(message);}
+  });
+  ```
+
+- To send messages to the selected topic, repeatedly call the `send` method of the message producer instance,
+  while providing the data in JSON form that is to be sent
+
+  ```Javascript
+  messageProducer.send(JSON.stringify({hello: 'haloha'}));
+  messageProducer.send(JSON.stringify({bye: 'good bye'}));
+  ```
+
+- Or `getMessageListener` method to get a message listener with an `options` argument specifying:
+
+  - the `topic` that is to be listened to
+  - the `onMessage` handler to be called whenever a message is received
+  - the optional `onSubscription` handler to be called when a client succesfully subscribes to the given topic
+  - the optional `onStop` handler to be called when a client stops listening
+  - the optional `onStart` handler to be called when the client starts listening for messages
+
+  ```Javascript
+  const messageListener = client.getMessageListener({
+    topic: 'Some topic',
+    onError: (err) => {
+        throw err;
+    },
+    onMessage: (message) => {
+      console.log(message);
+    },
+    onSubscription: (topicName) => {
+      console.log(`Subscribed to ${topicName}`);
+    },
+    onStop: () => {
+      console.log(`Stopped listening on ${client.ipAddressAndPort}`);
+    },
+    onStart: () => {
+      console.log(`Listening on ${client.ipAddressAndPort} to Topic: ${topic}`);
+    },
+  });
+  ```
+
+- To start listening for messages, call the `start` method of the message listener instance
+
+  ```Javascript
+  messageListener.start();
+  ```
+
+- To stop listening for messages, call the `stop` method of the message listener instance
+
+  ```Javascript
+  messageListener.stop();
+  ```
+
+- To disconnect the client from the remote server, call the `disconnect()` method of the client instance. Any attempt
+  to generate another producer or listener from the client after it has been disconnected will throw an exception.
+
+  ```Javascript
+  client.disconnect();
   ```
 
 ## How To Contribute

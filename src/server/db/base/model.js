@@ -77,6 +77,14 @@ class Model {
   replaceRecord(newRecord) {
     this.collection.update(newRecord);
   }
+
+  /**
+   * Removes the records that fit the criteria specified by the filterObject
+   * @param {{[key: string]: any}} filterObject - the mongodb like filter query for finding the records to update
+   */
+  deleteRecords(filterObject) {
+    this.collection.findAndRemove(filterObject);
+  }
 }
 
 module.exports = {

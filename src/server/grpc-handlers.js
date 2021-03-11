@@ -33,7 +33,20 @@ function grpcHandlerFactory(db, options = {}) {
       let clientId;
 
       call.on("error", (err) => {
-        throw err;
+        try {
+          call.write({
+            messageType: "ERROR",
+            payload: {
+              id: null,
+              data: JSON.stringify({ message: err }),
+            },
+          });
+          clearInterval(intervalHandle);
+          call.end();
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error(error);
+        }
       });
 
       call.on("status", (status) => {
@@ -71,7 +84,7 @@ function grpcHandlerFactory(db, options = {}) {
             messageType: "TOPIC",
             payload: {
               id: null,
-              data: JSON.stringify({}),
+              data: JSON.stringify({ topic }),
             },
           });
         } else if (clientResponse.messageType === "ACKNOWLEDGMENT") {
