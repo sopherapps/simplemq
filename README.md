@@ -36,7 +36,7 @@ One can chose to use any or both of these two components.
 - Install simplemq
 
   ```sh
-  npm install simplemq
+  npm install @sopherapps/simplemq
   ```
 
 - Create the server file. Let's name it `server.js`
