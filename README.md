@@ -85,7 +85,7 @@ One can chose to use any or both of these two components.
 - In your nodejs project, install simplemq
 
   ```sh
-  npm install simplemq
+  npm install @sopherapps/simplemq
   ```
 
 - Create the client file if you don't have one yet. Let's call it `client.js`
@@ -219,7 +219,7 @@ Coming soon.
 - [ ] Create videos showing its use
 - [ ] Create a cloud service for simplemq
 - [ ] Add logger
-- [ ] Publish npm package
+- [x] Publish npm package
 - [ ] Publish pypi package
 
 ## License
