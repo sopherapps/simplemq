@@ -114,6 +114,7 @@ class Database {
         clientId,
         messageIds: {},
         messageIdsInOrder: [],
+        messageIdsPendingAcknowledgment: [],
       });
     }
   }
@@ -165,6 +166,9 @@ class Database {
       }
 
       if (nextMessage) {
+        // shift the id to messageIdsPendingAcknowledgement
+        subscriberRecord.messageIdsInOrder.splice(i, 1);
+        subscriberRecord.messageIdsPendingAcknowledgment.push(messageId);
         break;
       }
 
@@ -185,8 +189,33 @@ class Database {
    */
   deleteMessage(clientId, messageId) {
     this.models.subscribers.updateRecords({ clientId }, (record) => {
+      // Remove the message id from messageIdsPendingAcknowledgement
+      const indexOfMessageId = record.messageIdsPendingAcknowledgment.indexOf(
+        messageId
+      );
+      if (indexOfMessageId > -1) {
+        record.messageIdsPendingAcknowledgment.splice(indexOfMessageId, 1);
+      }
       // eslint-disable-next-line no-param-reassign
       delete record.messageIds[messageId];
+    });
+  }
+
+  /**
+   * Restores the messages that have not been acknowledged back to the queue. This is to be used on
+   * end of the connection
+   * @param {string} clientId - the client id of the subscriber
+   */
+  restoreUnacknowledgedMessages(clientId) {
+    this.models.subscribers.updateRecords({ clientId }, (record) => {
+      // eslint-disable-next-line no-param-reassign
+      record.messageIdsInOrder = record.messageIdsPendingAcknowledgment.concat(
+        record.messageIdsInOrder
+      );
+      record.messageIdsPendingAcknowledgment.splice(
+        0,
+        record.messageIdsPendingAcknowledgment.length
+      );
     });
   }
 

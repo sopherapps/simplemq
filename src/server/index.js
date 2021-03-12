@@ -21,6 +21,7 @@ class Server {
       streamInterval = 1000,
       dbFilePath = "queue.db",
       isPersistent = false,
+      maxWaitBeforeForceShutDown = 2000,
     } = options;
     this.port = port;
     this.ttl = ttl;
@@ -28,11 +29,37 @@ class Server {
     this.streamInterval = streamInterval;
     this.dbFilePath = dbFilePath;
     this.isPersistent = isPersistent;
+    this.maxWaitBeforeForceShutDown = maxWaitBeforeForceShutDown;
     this.server = null;
 
     // bind method
     this.start = this.start.bind(this);
     this.stop = this.stop.bind(this);
+    this.initializeCleanUp = this.initializeCleanUp.bind(this);
+
+    this.initializeCleanUp();
+  }
+
+  initializeCleanUp() {
+    process.on("exit", () => {
+      this.stop();
+    });
+
+    // catch ctrl+c event and exit normally
+    process.on("SIGINT", () => {
+      // eslint-disable-next-line no-console
+      console.log("Ctrl-C...");
+      process.exit(1);
+    });
+
+    // catch uncaught exceptions, trace, then exit normally
+    process.on("uncaughtException", (e) => {
+      // eslint-disable-next-line no-console
+      console.error("Uncaught Exception...");
+      // eslint-disable-next-line no-console
+      console.error(e.stack);
+      process.exit(1);
+    });
   }
 
   start() {
@@ -82,15 +109,25 @@ class Server {
   /**
    * Stops the server to receive no more requests
    */
-  stop() {
+  stop(callback = () => {}) {
     if (this.server) {
+      const timeout = setTimeout(() => {
+        // eslint-disable-next-line no-console
+        console.log(`Server forcefully shutdown`);
+        this.server.forceShutdown();
+        callback();
+      }, this.maxWaitBeforeForceShutDown);
+
       this.server.tryShutdown(() => {
+        clearTimeout(timeout);
         // eslint-disable-next-line no-console
         console.log(`Server shutdown successful`);
+        callback();
       });
     } else {
       // eslint-disable-next-line no-console
       console.log("The server was not running");
+      callback();
     }
   }
 }

@@ -42,6 +42,7 @@ function grpcHandlerFactory(db, options = {}) {
             },
           });
           clearInterval(intervalHandle);
+          db.restoreUnacknowledgedMessages(clientId);
           call.end();
         } catch (error) {
           // eslint-disable-next-line no-console
@@ -95,6 +96,7 @@ function grpcHandlerFactory(db, options = {}) {
 
       call.on("end", () => {
         clearInterval(intervalHandle);
+        db.restoreUnacknowledgedMessages(clientId);
         call.end();
       });
     },

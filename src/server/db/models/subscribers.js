@@ -34,6 +34,14 @@ class Subscribers extends Model {
             type: "string",
           },
         },
+        messageIdsPendingAcknowledgement: {
+          description:
+            "An array of the ids of yet-to-be-acknowledged messages for a given client, in order of creation",
+          type: "array",
+          items: {
+            type: "string",
+          },
+        },
       },
     };
   }
