@@ -1,5 +1,5 @@
 {
-  "name": "simplemq",
+  "name": "@tinitto/simplemq",
   "version": "0.0.1",
   "description": "A simple message queue server that requires only nodejs",
   "main": "src/index.js",
