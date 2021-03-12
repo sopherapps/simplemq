@@ -1,6 +1,6 @@
 {
   "name": "@sopherapps/simplemq",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A simple message queue server that requires only nodejs",
   "main": "src/index.js",
   "scripts": {
