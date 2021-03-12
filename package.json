@@ -2,7 +2,7 @@
   "name": "simplemq",
   "version": "0.0.1",
   "description": "A simple message queue server that requires only nodejs",
-  "main": "src/server.js",
+  "main": "src/index.js",
   "scripts": {
     "jest": "jest --forceExit --detectOpenHandles --runInBand",
     "server:start": "NODE_ENV=test node src/utils/test-server.js",
