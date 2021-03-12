@@ -206,10 +206,10 @@ Coming soon.
 
 ## ToDo
 
-- [ ] Make lokijs persist to file
+- [x] Make lokijs persist to file
 - [ ] There might be need for removeSubscriber function
-- [ ] Modularize the DB module itself into TOPICS, MESSAGES AND SUBSCRIBERS
-- [ ] Add JavaScript client code
+- [x] Modularize the DB module itself into TOPICS, MESSAGES AND SUBSCRIBERS
+- [x] Add JavaScript client code
 - [ ] Create python client package
 - [ ] Create java client package
 - [ ] Add option to add certificates for authentication
@@ -218,6 +218,9 @@ Coming soon.
 - [ ] Create blog posts showing its use
 - [ ] Create videos showing its use
 - [ ] Create a cloud service for simplemq
+- [ ] Add logger
+- [ ] Publish npm package
+- [ ] Publish pypi package
 
 ## License
 
