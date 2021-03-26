@@ -2,7 +2,7 @@
  * Model for the subscribers
  */
 
-const { Model } = require("../lokijs/base/model");
+const { Model } = require("../base/model");
 
 class Subscribers extends Model {
   constructor() {

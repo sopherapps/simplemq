@@ -6,7 +6,7 @@ const protoLoader = require("@grpc/proto-loader");
 const { grpcHandlerFactory } = require("./grpc-handlers");
 const { PROTOBUF_FILE_PATH } = require("../config");
 
-const { Database } = require("./db");
+const { Database } = require("./db/lokijs");
 
 class Server {
   /**
