@@ -6,7 +6,8 @@ const protoLoader = require("@grpc/proto-loader");
 const { grpcHandlerFactory } = require("./grpc-handlers");
 const { PROTOBUF_FILE_PATH } = require("../config");
 
-const { Database } = require("./db/lokijs");
+// const { Database } = require("./db/lokijs");
+const { LevelDatabase } = require("./db/leveldb");
 
 class Server {
   /**
@@ -31,6 +32,7 @@ class Server {
     this.isPersistent = isPersistent;
     this.maxWaitBeforeForceShutDown = maxWaitBeforeForceShutDown;
     this.server = null;
+    this.db = undefined;
 
     // bind method
     this.start = this.start.bind(this);
@@ -99,35 +101,43 @@ class Server {
 
     // Initialize the database, then on finishing, initialize the gRPC Server
     // eslint-disable-next-line no-new
-    new Database(
-      this.dbFilePath,
-      { isPersistent: this.isPersistent },
-      onDbInitialization
-    );
+    // new Database(
+    //   this.dbFilePath,
+    //   { isPersistent: this.isPersistent },
+    //   onDbInitialization
+    // );
+    this.db = new LevelDatabase(this.dbFilePath, {}, onDbInitialization);
   }
 
   /**
    * Stops the server to receive no more requests
    */
   stop(callback = () => {}) {
+    const closeDatabase = () => {
+      if (this.db) {
+        this.db.close(callback);
+      } else {
+        callback();
+      }
+    };
     if (this.server) {
       const timeout = setTimeout(() => {
         // eslint-disable-next-line no-console
         console.log(`Server forcefully shutdown`);
         this.server.forceShutdown();
-        callback();
+        closeDatabase();
       }, this.maxWaitBeforeForceShutDown);
 
       this.server.tryShutdown(() => {
         clearTimeout(timeout);
         // eslint-disable-next-line no-console
         console.log(`Server shutdown successful`);
-        callback();
+        closeDatabase();
       });
     } else {
       // eslint-disable-next-line no-console
       console.log("The server was not running");
-      callback();
+      closeDatabase();
     }
   }
 }

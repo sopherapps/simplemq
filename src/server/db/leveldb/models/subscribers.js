@@ -2,9 +2,9 @@
  * Model for the subscribers
  */
 
-const { Model } = require("../base/model");
+const { LevelDbModel } = require("../base/model");
 
-class Subscribers extends Model {
+class Subscribers extends LevelDbModel {
   constructor() {
     super("subscribers", "clientId");
     this.schema = {

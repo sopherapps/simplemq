@@ -3,6 +3,10 @@
  */
 const { default: Ajv } = require("ajv");
 
+const defaultCallback = (err) => {
+  throw err;
+};
+
 class LevelDbModel {
   constructor(collectionName, primaryField = undefined, options = {}) {
     this.collectionName = collectionName;
@@ -170,14 +174,19 @@ class LevelDbModel {
    * @param {any} id - the id of the record
    * @param {{[key: string]: any}} data - the data for the new record
    * @param {{createdOn: number?, updatedOn: number?, collection: string?}} meta - the meta data to attach to the data
-   * @returns {Promise<[BigInt, {[key: string]: any}]>}- the id and document created
    */
-  async addRecord(id = this.getNextId(), data, meta = {}) {
+  addRecord(
+    id = this.getNextId(),
+    data,
+    meta = {},
+    callback = defaultCallback
+  ) {
     if (this.validate(data)) {
       const key = this.generateKey(id);
       const enhancedData = this.prepareDataForSaving(data, meta);
-      await this.db.put(key, enhancedData);
-      return [id, data];
+      this.db.put(key, enhancedData, (err) => {
+        callback(err, [id, data]);
+      });
     }
 
     throw this.avjObject.errorsText(this.validate.errors);
@@ -186,12 +195,18 @@ class LevelDbModel {
   /**
    * Gets a record from this model's collection   *
    * @param {any} id - the id to be used to find that particular record
-   * @returns {Promise<{[key: string]: any}>}
    */
-  async getRecord(id) {
+  getRecord(id, callback = defaultCallback) {
     const key = this.generateKey(id);
-    const { data } = await this.db.get(key);
-    return data;
+    this.db.get(key, (err, value) => {
+      if (err && err.notFound) {
+        callback(null, null);
+      } else if (err) {
+        callback(err);
+      } else {
+        callback(null, value.data);
+      }
+    });
   }
 
   /**
@@ -206,9 +221,8 @@ class LevelDbModel {
    * Updates the records for the given keys or ids
    * @param {any[]} ids - the list of ids
    * @param {(any)=> any} updateFunction - the update function that receives each given record and changes it accordingly and retunrs updated record
-   * @returns {Promise<void>}
    */
-  async updateRecords(ids, updateFunction) {
+  updateRecords(ids, updateFunction, callback = defaultCallback) {
     let isInProgress = false;
     const batchOperations = [];
 
@@ -246,22 +260,29 @@ class LevelDbModel {
     // eslint-disable-next-line no-empty
     while (isInProgress) {}
 
-    return this.db.batch(batchOperations);
+    this.db.batch(batchOperations, (err) => {
+      callback(err);
+    });
   }
 
   /**
    * Replaces a record of a given id with another record with that same id
    * @param {any} id - the id for the given record
    * @param {{[key: string]: any}} newRecord - the new record with an existing id
-   * @returns {Promise<void>}
    */
-  async replaceRecord(id, newRecord) {
+  replaceRecord(id, newRecord, callback = defaultCallback) {
     if (this.validate(newRecord)) {
       const key = this.generateKey(id);
-      const { meta } = await this.db.get(key);
-
-      const enhancedData = this.prepareDataForSaving(newRecord, meta);
-      await this.db.put(key, enhancedData);
+      this.db.get(key, (err, value) => {
+        if (err) {
+          throw err;
+        }
+        const { meta } = value;
+        const enhancedData = this.prepareDataForSaving(newRecord, meta);
+        this.db.put(key, enhancedData, (error) => {
+          callback(error);
+        });
+      });
     }
 
     throw this.avjObject.errorsText(this.validate.errors);
@@ -269,9 +290,8 @@ class LevelDbModel {
 
   /**
    * Removes the records of the given keys
-   * @returns {Promise<void>} - a promise that can error out
    */
-  async clear() {
+  clear(callback = defaultCallback) {
     let isInProgress = true;
     const batchOperations = [];
 
@@ -294,7 +314,7 @@ class LevelDbModel {
     // eslint-disable-next-line no-empty
     while (isInProgress) {}
 
-    return this.db.batch(batchOperations);
+    this.db.batch(batchOperations, callback);
   }
 }
 

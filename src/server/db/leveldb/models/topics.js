@@ -2,9 +2,9 @@
  * Model for the topics
  */
 
-const { Model } = require("../base/model");
+const { LevelDbModel } = require("../base/model");
 
-class Topics extends Model {
+class Topics extends LevelDbModel {
   constructor() {
     super("topics");
     this.schema = {

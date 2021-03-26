@@ -2,9 +2,9 @@
  * Model for the messages
  */
 
-const { Model } = require("../base/model");
+const { LevelDbModel } = require("../base/model");
 
-class Messages extends Model {
+class Messages extends LevelDbModel {
   constructor(ttl, ttlInterval) {
     super("messages", "topic", {
       ttl,
