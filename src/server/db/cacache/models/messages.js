@@ -2,13 +2,14 @@
  * Model for the messages
  */
 
-const { LevelDbModel } = require("../base/model");
+const { Model } = require("../base/model");
 
-class Messages extends LevelDbModel {
-  constructor(ttl, ttlInterval) {
-    super("messages", "topic", {
+class Messages extends Model {
+  constructor(ttl, ttlInterval, baseCachePath) {
+    super("messages", {
       ttl,
       ttlInterval,
+      baseCachePath,
     });
     this.schema = {
       type: "object",

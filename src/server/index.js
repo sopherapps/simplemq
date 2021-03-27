@@ -7,7 +7,7 @@ const { grpcHandlerFactory } = require("./grpc-handlers");
 const { PROTOBUF_FILE_PATH } = require("../config");
 
 // const { Database } = require("./db/lokijs");
-const { LevelDatabase } = require("./db/leveldb");
+const { Database } = require("./db/cacache");
 
 class Server {
   /**
@@ -106,7 +106,7 @@ class Server {
     //   { isPersistent: this.isPersistent },
     //   onDbInitialization
     // );
-    this.db = new LevelDatabase(this.dbFilePath, {}, onDbInitialization);
+    this.db = new Database(undefined, {}, onDbInitialization);
   }
 
   /**
@@ -122,7 +122,6 @@ class Server {
     };
     if (this.server) {
       const timeout = setTimeout(() => {
-        // eslint-disable-next-line no-console
         console.log(`Server forcefully shutdown`);
         this.server.forceShutdown();
         closeDatabase();
@@ -130,12 +129,10 @@ class Server {
 
       this.server.tryShutdown(() => {
         clearTimeout(timeout);
-        // eslint-disable-next-line no-console
         console.log(`Server shutdown successful`);
         closeDatabase();
       });
     } else {
-      // eslint-disable-next-line no-console
       console.log("The server was not running");
       closeDatabase();
     }

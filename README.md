@@ -52,7 +52,7 @@ One can chose to use any or both of these two components.
   - the `ttl` i.e. time to live in milliseconds for the messages before they are considered stale
   - the `ttlInterval` i.e. the interval in milliseconds for clearing out stale messages
   - the `streamInterval` i.e. the interval at which messages are to be sent to any listening client
-  - the `dbFilePath` i.e. the path to the lokijs database to persist the messages, subscribers and topics
+  - the `dbFilePath` i.e. the base path to the lokijs/cacache database to persist the messages, subscribers and topics
   - the `isPersistent` i.e. whether to persist the data across restarts of the server
   - the `maxWaitBeforeForcedShutDown` i.e. the number of milliseconds to wait after a shutdown has been initiated for a forceful shutdown to come into action
 
