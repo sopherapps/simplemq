@@ -10,13 +10,17 @@ class Topics extends Model {
       type: "string",
       description: "The client id of each subscriber of the given topic",
     };
+
+    // bindings
+    this.generateClientIdForTopic = this.generateClientIdForTopic.bind(this);
+    this.getKeyRangeForTopic = this.getKeyRangeForTopic.bind(this);
   }
 
   /**
    * Generates a clientId that is specific to that topic so that it can be used to generate unique keys
    * @param {string} topic - the name of the topic
    * @param {string} clientId - the clientId of the subscriber
-   * @returns {string}
+   * @returns {string} - the enhanced id
    */
   // eslint-disable-next-line class-methods-use-this
   generateClientIdForTopic(topic, clientId) {
