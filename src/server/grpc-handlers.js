@@ -50,13 +50,11 @@ function grpcHandlerFactory(db, options = {}) {
           clearInterval(intervalHandle);
           call.end();
         } catch (error) {
-          // eslint-disable-next-line no-console
           console.error(error);
         }
       });
 
       call.on("status", (status) => {
-        // eslint-disable-next-line no-console
         console.log(status);
       });
 
@@ -110,7 +108,9 @@ function grpcHandlerFactory(db, options = {}) {
         } else if (clientResponse.messageType === "ACKNOWLEDGMENT") {
           const messageId = clientResponse.payload;
           db.deleteMessage(clientId, messageId, (err) => {
-            console.error(err);
+            if (err) {
+              console.error(err);
+            }
           });
         }
       });

@@ -109,15 +109,12 @@ class Client {
       },
       onMessage,
       onSubscription = (topicName) => {
-        // eslint-disable-next-line no-console
         console.log(`Subscribed to ${topicName}`);
       },
       onStop = () => {
-        // eslint-disable-next-line no-console
         console.log(`Stopped listening on ${this.ipAddressAndPort}`);
       },
       onStart = () => {
-        // eslint-disable-next-line no-console
         console.log(`Listening on ${this.ipAddressAndPort} to Topic: ${topic}`);
       },
     } = options;

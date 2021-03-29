@@ -21,15 +21,9 @@ class Database {
     onIntializeHandler = () => {}
   ) {
     const {
-      isPersistent = true,
       ttl = 1000 * 60 * 60 * 24 * 30,
       ttlInterval = 1000 * 60 * 60 * 24,
     } = options;
-    if (!isPersistent) {
-      throw new Error(
-        "When using leveldb as persistent layer, the messages have to be persistent"
-      );
-    }
     this.db = null;
 
     this.models = {

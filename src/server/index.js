@@ -6,8 +6,8 @@ const protoLoader = require("@grpc/proto-loader");
 const { grpcHandlerFactory } = require("./grpc-handlers");
 const { PROTOBUF_FILE_PATH } = require("../config");
 
-// const { Database } = require("./db/lokijs");
-const { Database } = require("./db/leveldb");
+const { Database } = require("./db");
+const { defaultCachePath } = require("./db/utils");
 
 class Server {
   /**
@@ -20,8 +20,7 @@ class Server {
       ttl = 1000 * 60 * 60 * 24 * 30,
       ttlInterval = 1000 * 60 * 60 * 24,
       streamInterval = 1000,
-      dbFilePath = "queue.db",
-      isPersistent = true,
+      dbFilePath = defaultCachePath,
       maxWaitBeforeForceShutDown = 2000,
     } = options;
     this.port = port;
@@ -29,7 +28,6 @@ class Server {
     this.ttlInterval = ttlInterval;
     this.streamInterval = streamInterval;
     this.dbFilePath = dbFilePath;
-    this.isPersistent = isPersistent;
     this.maxWaitBeforeForceShutDown = maxWaitBeforeForceShutDown;
     this.server = null;
     this.db = undefined;
@@ -49,16 +47,13 @@ class Server {
 
     // catch ctrl+c event and exit normally
     process.on("SIGINT", () => {
-      // eslint-disable-next-line no-console
       console.log("Ctrl-C...");
       process.exit(1);
     });
 
     // catch uncaught exceptions, trace, then exit normally
     process.on("uncaughtException", (e) => {
-      // eslint-disable-next-line no-console
       console.error("Uncaught Exception...");
-      // eslint-disable-next-line no-console
       console.error(e.stack);
       process.exit(1);
     });
@@ -90,9 +85,7 @@ class Server {
 
         // start the Server
         this.server.start();
-        // eslint-disable-next-line no-console
         console.log(`Server running on ${serverIpAndPort}`);
-        // eslint-disable-next-line no-console
         console.log(`Environment NODE_ENV = ${process.env.NODE_ENV}`);
       };
 
@@ -108,11 +101,7 @@ class Server {
     };
 
     // Initialize the database, then on finishing, initialize the gRPC Server
-    this.db = new Database(
-      undefined,
-      { isPersistent: this.isPersistent },
-      onDbInitialization
-    );
+    this.db = new Database(undefined, {}, onDbInitialization);
   }
 
   /**
