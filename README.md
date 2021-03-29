@@ -99,7 +99,7 @@ One can chose to use any or both of these two components.
   - a random `clientId` to identify the client
 
   ```Javascript
-  const {Client} = require('simplemq');
+  const {Client} = require('@sopherapps/simplemq');
 
   const client = new Client({
       ipAddress: 'localhost', // the ip address, for now we will assume the server is on this computer
