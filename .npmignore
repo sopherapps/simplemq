@@ -124,3 +124,9 @@ src/utils/*
 # Ignore the linter and prettier configs
 .eslintrc.json
 .prettierrc.json
+
+
+# cache
+*.db
+simple-mq-cache
+leveldb-cache

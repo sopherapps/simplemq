@@ -1,230 +1,224 @@
 /**
  * Module contains the class the creates the db instance
  */
-const Loki = require("lokijs");
-const LokiFsStructuredAdapter = require("lokijs/src/loki-fs-structured-adapter.js");
-// eslint-disable-next-line no-unused-vars
+const level = require("level");
+
 const { Messages } = require("./models/messages");
 const { Subscribers } = require("./models/subscribers");
 const { Topics } = require("./models/topics");
+const { defaultCachePath, defaultCallback, generateUuid } = require("./utils");
 
 class Database {
   /**
    * The database class that persists queue data
-   * @param {string} filePath - file path to the database e.g. queue.db
-   * @param {Partial<LokiConstructorOptions> & Partial<LokiConfigOptions> & Partial<ThrottledSaveDrainOptions>)} options - the configuration for the lokijs
+   * @param {string} baseCachePath - absolute path to the folder in which the cache is to be saved
+   * @param {{[key: string]: any}} options - the configuration for the level
    * @param {(Database) => void} onIntializeHandler - A function to run on initialization e.g. start server app, passed this database instance
    */
-  constructor(filePath, options = {}, onIntializeHandler = () => {}) {
-    const { isPersistent = false } = options;
-    let dbOptions = {
-      autoload: true,
-      // eslint-disable-next-line no-use-before-define
-      autoloadCallback,
-      ...options,
+  constructor(
+    baseCachePath = defaultCachePath,
+    options = {},
+    onIntializeHandler = () => {}
+  ) {
+    const {
+      ttl = 1000 * 60 * 60 * 24 * 30,
+      ttlInterval = 1000 * 60 * 60 * 24,
+    } = options;
+    this.db = null;
+
+    this.models = {
+      messages: new Messages(ttl, ttlInterval),
+      subscribers: new Subscribers(),
+      topics: new Topics(),
     };
-    if (isPersistent) {
-      dbOptions = {
-        adapter: new LokiFsStructuredAdapter(),
-        autosave: true,
-        autosaveInterval: 1000,
-        ...options,
-      };
-    }
-    this.db = new Loki(filePath, dbOptions);
-    this.models = {};
-    const self = this;
-
-    const models = [new Messages(), new Subscribers(), new Topics()];
-
-    function autoloadCallback() {
-      models.forEach((model) => {
-        let collection = self.db.getCollection(model.collectionName);
-
-        if (collection === null) {
-          collection = self.db.addCollection(
-            model.collectionName,
-            model.options
-          );
-        }
-
-        model.setCollection(collection);
-        self.models[model.collectionName] = model;
-      });
-      onIntializeHandler(self);
-    }
 
     // binding methods
-    this.getTopicRecord = this.getTopicRecord.bind(this);
     this.subscribeToTopic = this.subscribeToTopic.bind(this);
     this.unsubscribeToTopic = this.unsubscribeToTopic.bind(this);
-    this.registerSubscriber = this.registerSubscriber.bind(this);
     this.addMessageToTopic = this.addMessageToTopic.bind(this);
     this.getNextMessageForSubscriber = this.getNextMessageForSubscriber.bind(
       this
     );
     this.deleteMessage = this.deleteMessage.bind(this);
+    this.clear = this.clear.bind(this);
+    this.close = this.close.bind(this);
+
+    // Initializing the levelDB
+    level(baseCachePath, (err, db) => {
+      if (err) {
+        throw err;
+      }
+
+      this.db = db;
+      onIntializeHandler(this);
+    });
   }
 
   /**
-   * Gets a topic from the topics collection or creates it if it does not exist
-   * @param {string} topic - the topic that is to be searched for
-   * @returns {topic: string, subscribers: string[]}
-   */
-  getTopicRecord(topic) {
-    let topicRecord = this.models.topics.getRecord(topic);
-
-    if (!topicRecord) {
-      topicRecord = this.models.topics.addRecord({ topic, subscribers: {} });
-    }
-
-    return topicRecord;
-  }
-
-  /**
-   * Adds a clientId to the object of subscribers under that topic
-   * @param {string} topic - the topic to subscribe to
+   * Adds a clientId to the cache of that topic
+   * @param {string]} topic - the topic to subscribe to
    * @param {string} clientId - the client id
+   * @param {(Error|null, string|null)=>void} callback - the callback to be called after action completes or errs.
    */
-  subscribeToTopic(topic, clientId) {
-    const topicRecord = this.getTopicRecord(topic);
-    topicRecord.subscribers[clientId] = 1;
-    this.models.topics.replaceRecord(topicRecord);
+  subscribeToTopic(topic, clientId, callback = defaultCallback) {
+    const clientIdKeyForTopic = this.models.topics.generateClientIdForTopic(
+      topic,
+      clientId
+    );
+    // attempt to get the record for given client, if nonexistent, add it
+    this.models.topics.getRecord(this.db, clientIdKeyForTopic, (exception) => {
+      if (exception) {
+        this.models.topics.addRecord(
+          this.db,
+          clientIdKeyForTopic,
+          clientId,
+          (error, { data }) => callback(error, data)
+        );
+      } else {
+        callback(null, clientId);
+      }
+    });
   }
 
   /**
-   * Removes a clientId from the object of subscribers under that topic
-   * @param {string} topic - the topic to subscribe to
+   * Removes a clientId from the cache file of that topic
+   * @param {string} topic - the topic to unsubscribe from
    * @param {string} clientId - the client id
+   * @param {(Error|null)=>void} callback - the callback to be called after action completes or errs.
    */
-  unsubscribeToTopic(topic, clientId) {
-    const topicRecord = this.getTopicRecord(topic);
-    delete topicRecord.subscribers[clientId];
-    this.models.topics.replaceRecord(topicRecord);
-  }
-
-  /**
-   * Adds the client in the list of subscribers if that client does not exist
-   * @param {string} clientId - the id of the client
-   */
-  registerSubscriber(clientId) {
-    const clientRecord = this.models.subscribers.getRecord(clientId);
-    if (!clientRecord) {
-      this.models.subscribers.addRecord({
-        clientId,
-        messageIds: {},
-        messageIdsInOrder: [],
-        messageIdsPendingAcknowledgment: [],
-      });
-    }
+  unsubscribeToTopic(topic, clientId, callback = defaultCallback) {
+    const clientIdKeyForTopic = this.models.topics.generateClientIdForTopic(
+      topic,
+      clientId
+    );
+    this.models.topics.removeRecord(this.db, clientIdKeyForTopic, callback);
   }
 
   /**
    * Adds the given message to the given topic
    * @param {string} topic - the topic to publish to
    * @param {{[key: string]: any}} message - the message to persist
+   * @param {(Error|null)=>void} callback - the callback to be called after action completes or errs.
    */
-  addMessageToTopic(topic, message) {
-    // save the message
-    const id = `_id${Math.random().toString(36).substring(7)}`;
+  addMessageToTopic(topic, message, callback = defaultCallback) {
+    // save the message. The Uuid seem to be in order
+    const id = generateUuid();
     const messageRecord = { id, topic, data: message };
-    this.models.messages.addRecord(messageRecord);
 
-    // for each subscriber in the topic, add the id of the message in their subscriber messageIds object
-    const topicRecord = this.getTopicRecord(topic);
-    const subscriberIds = [...Object.keys(topicRecord.subscribers)];
-    this.models.subscribers.updateRecords(
-      { clientId: { $in: subscriberIds } },
-      (record) => {
-        // eslint-disable-next-line no-param-reassign
-        record.messageIds[id] = 1;
-        record.messageIdsInOrder.push(id);
+    this.models.messages.addRecord(this.db, id, messageRecord, (error) => {
+      if (error) {
+        callback(error);
+        return;
       }
-    );
+
+      // for each subscriber in the topic cache file, add the id of the message the subscriber's cache file
+      const keyRange = this.models.topics.getKeyRangeForTopic(topic);
+
+      this.models.topics.streamValues(
+        this.db,
+        {
+          onData: (clientId) => {
+            const messageIdForSubscriber = this.models.subscribers.generateMessageIdForSubscriber(
+              clientId,
+              id
+            );
+
+            this.models.subscribers.addRecord(
+              this.db,
+              messageIdForSubscriber,
+              id,
+              (exception) => {
+                if (exception) {
+                  callback(exception);
+                }
+              }
+            );
+          },
+          onError: (err) => callback(err),
+          onClose: () => callback(null),
+        },
+        { ...keyRange }
+      );
+    });
   }
 
   /**
    * Gets next message for the client of that clientId
    * @param {string} clientId - the client ID of the subscriber
-   * @returns {{id: string, data: string } | null }
+   * @param {(Error|null, any)=>void} callback - the callback to be called per message or on error
+   * @param {()=>void} onEndCallback - the callback to call when the stream is either closed or data is done
    */
-  getNextMessageForSubscriber(clientId) {
-    const subscriberRecord = this.models.subscribers.getRecord(clientId);
-    let nextMessage = null;
+  getNextMessageForSubscriber(
+    clientId,
+    callback = defaultCallback,
+    onEndCallback = () => {}
+  ) {
+    // stream the message ids for the given subscriber and attempt to
+    // get the corresponding message from the messages cache
+    const keyRange = this.models.subscribers.getKeyRangeForSubscriber(clientId);
 
-    if (!subscriberRecord) {
-      return null;
-    }
-
-    // eslint-disable-next-line no-plusplus
-    for (let i = 0; i < subscriberRecord.messageIdsInOrder.length; i++) {
-      const messageId = subscriberRecord.messageIdsInOrder[i];
-      const isMessageIdAvailable = subscriberRecord.messageIds[messageId];
-
-      if (isMessageIdAvailable) {
-        nextMessage = this.models.messages.getRecord(messageId);
-      }
-
-      if (nextMessage) {
-        // shift the id to messageIdsPendingAcknowledgement
-        subscriberRecord.messageIdsInOrder.splice(i, 1);
-        subscriberRecord.messageIdsPendingAcknowledgment.push(messageId);
-        break;
-      }
-
-      // Remove the id from the queue as it is unavailable
-      delete subscriberRecord.messageIds[messageId];
-      subscriberRecord.messageIdsInOrder.splice(i, 1);
-    }
-
-    // update the changes made to the subscriber record if any
-    this.models.subscribers.replaceRecord(subscriberRecord);
-    return nextMessage;
+    this.models.subscribers.streamValues(
+      this.db,
+      {
+        onData: (messageId) => {
+          this.models.messages.getRecord(this.db, messageId, (err, message) => {
+            if (err) {
+              callback(err);
+            } else {
+              callback(null, message);
+            }
+          });
+        },
+        onError: callback,
+        onEnd: onEndCallback,
+        onClose: onEndCallback,
+      },
+      { ...keyRange }
+    );
   }
 
   /**
    * Deletes a given message from the queue
    * @param {string} clientId - clientId is the ID of the subscriber
    * @param {string} messageId - messageId is the ID of message to be removed
+   * @param {(Error|null)=>void} callback - the callback to be called after action completes or errs.
    */
-  deleteMessage(clientId, messageId) {
-    this.models.subscribers.updateRecords({ clientId }, (record) => {
-      // Remove the message id from messageIdsPendingAcknowledgement
-      const indexOfMessageId = record.messageIdsPendingAcknowledgment.indexOf(
-        messageId
-      );
-      if (indexOfMessageId > -1) {
-        record.messageIdsPendingAcknowledgment.splice(indexOfMessageId, 1);
-      }
-      // eslint-disable-next-line no-param-reassign
-      delete record.messageIds[messageId];
-    });
+  deleteMessage(clientId, messageId, callback = defaultCallback) {
+    // remove the messageId from the cache for given subscriber
+    const messageIdForSubscriber = this.models.subscribers.generateMessageIdForSubscriber(
+      clientId,
+      messageId
+    );
+    this.models.subscribers.removeRecord(
+      this.db,
+      messageIdForSubscriber,
+      callback
+    );
   }
 
   /**
-   * Restores the messages that have not been acknowledged back to the queue. This is to be used on
-   * end of the connection
-   * @param {string} clientId - the client id of the subscriber
+   * Clears the data in the models
+   * @param {(Error|null, string|null)=>void} callback - the callback to be called after action completes or errs.
    */
-  restoreUnacknowledgedMessages(clientId) {
-    this.models.subscribers.updateRecords({ clientId }, (record) => {
-      // eslint-disable-next-line no-param-reassign
-      record.messageIdsInOrder = record.messageIdsPendingAcknowledgment.concat(
-        record.messageIdsInOrder
-      );
-      record.messageIdsPendingAcknowledgment.splice(
-        0,
-        record.messageIdsPendingAcknowledgment.length
-      );
-    });
+  clear(callback = defaultCallback) {
+    this.db.clear(callback);
   }
 
-  clear() {
+  /**
+   * Closes the database connection
+   * @param {(Error)=>void} callback - the callbakc to call with an error in case an error occurs
+   */
+  close(callback = defaultCallback) {
     const models = Object.values(this.models);
+
     // eslint-disable-next-line no-plusplus
     for (let index = 0; index < models.length; index++) {
       const model = models[index];
-      model.deleteRecords({});
+      model.cleanUp();
+    }
+
+    if (this.db) {
+      this.db.close(callback);
     }
   }
 }

@@ -20,8 +20,13 @@ function grpcHandlerFactory(db, options = {}) {
       const { topic } = call.request;
       const message = call.request.data;
 
-      db.addMessageToTopic(topic, JSON.parse(message));
-      callback(null, { received: true });
+      db.addMessageToTopic(topic, JSON.parse(message), (err) => {
+        if (err) {
+          callback(err, { received: false });
+        } else {
+          callback(null, { received: true });
+        }
+      });
     },
 
     /**
@@ -31,6 +36,7 @@ function grpcHandlerFactory(db, options = {}) {
     subscribeToTopic(call) {
       let intervalHandle;
       let clientId;
+      let isStreaming = false;
 
       call.on("error", (err) => {
         try {
@@ -42,16 +48,13 @@ function grpcHandlerFactory(db, options = {}) {
             },
           });
           clearInterval(intervalHandle);
-          db.restoreUnacknowledgedMessages(clientId);
           call.end();
         } catch (error) {
-          // eslint-disable-next-line no-console
           console.error(error);
         }
       });
 
       call.on("status", (status) => {
-        // eslint-disable-next-line no-console
         console.log(status);
       });
 
@@ -62,41 +65,58 @@ function grpcHandlerFactory(db, options = {}) {
           }
 
           clientId = clientResponse.payload;
-          db.registerSubscriber(clientId);
 
           intervalHandle = setInterval(() => {
-            const nextMessage = db.getNextMessageForSubscriber(clientId);
-            if (nextMessage) {
-              call.write({
-                messageType: "MESSAGE",
-                payload: {
-                  id: nextMessage.id,
-                  data: JSON.stringify(nextMessage.data),
+            if (!isStreaming) {
+              isStreaming = true;
+
+              db.getNextMessageForSubscriber(
+                clientId,
+                (error, nextMessage) => {
+                  if (nextMessage) {
+                    call.write({
+                      messageType: "MESSAGE",
+                      payload: {
+                        id: nextMessage.id,
+                        data: JSON.stringify(nextMessage.data),
+                      },
+                    });
+                  }
                 },
-              });
+                () => {
+                  isStreaming = false;
+                }
+              );
             }
           }, streamInterval);
         } else if (clientResponse.messageType === "TOPIC") {
-          // change TOPIC to SUBSCRIBE
-          // Add another branch for UNSUBSCRIBE
+          // FIXME: change TOPIC to SUBSCRIBE
+          // FIXME: Add another branch for UNSUBSCRIBE
           const topic = clientResponse.payload;
-          db.subscribeToTopic(topic, clientId);
-          call.write({
-            messageType: "TOPIC",
-            payload: {
-              id: null,
-              data: JSON.stringify({ topic }),
-            },
+          db.subscribeToTopic(topic, clientId, (err) => {
+            if (err) {
+              throw err;
+            }
+            call.write({
+              messageType: "TOPIC",
+              payload: {
+                id: null,
+                data: JSON.stringify({ topic }),
+              },
+            });
           });
         } else if (clientResponse.messageType === "ACKNOWLEDGMENT") {
           const messageId = clientResponse.payload;
-          db.deleteMessage(clientId, messageId);
+          db.deleteMessage(clientId, messageId, (err) => {
+            if (err) {
+              console.error(err);
+            }
+          });
         }
       });
 
       call.on("end", () => {
         clearInterval(intervalHandle);
-        db.restoreUnacknowledgedMessages(clientId);
         call.end();
       });
     },

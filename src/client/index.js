@@ -11,6 +11,10 @@ const grpcObject = grpc.loadPackageDefinition(packageDefinition);
 const { articleCurator } = grpcObject;
 
 class Client {
+  /**
+   * Connects to a simplemq server at given IP address and port
+   * @param {{clientId?: string, ipAddress?: string, interval?: number, port?: number}} options - the client connection options
+   */
   constructor(options = {}) {
     const { clientId, ipAddress, interval = 1000, port = 38000 } = options;
 
@@ -109,15 +113,12 @@ class Client {
       },
       onMessage,
       onSubscription = (topicName) => {
-        // eslint-disable-next-line no-console
         console.log(`Subscribed to ${topicName}`);
       },
       onStop = () => {
-        // eslint-disable-next-line no-console
         console.log(`Stopped listening on ${this.ipAddressAndPort}`);
       },
       onStart = () => {
-        // eslint-disable-next-line no-console
         console.log(`Listening on ${this.ipAddressAndPort} to Topic: ${topic}`);
       },
     } = options;

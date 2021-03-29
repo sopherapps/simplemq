@@ -6,7 +6,7 @@ const { Model } = require("../base/model");
 
 class Messages extends Model {
   constructor(ttl, ttlInterval) {
-    super("messages", "id", {
+    super("messages", {
       ttl,
       ttlInterval,
     });
@@ -17,7 +17,7 @@ class Messages extends Model {
         id: {
           description:
             "The internally automatically generated id for the message",
-          type: "string",
+          type: "number",
         },
         topic: {
           description: "The topic to which the message is posted",
