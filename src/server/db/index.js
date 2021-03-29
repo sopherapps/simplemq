@@ -40,14 +40,16 @@ class Database {
       this
     );
     this.deleteMessage = this.deleteMessage.bind(this);
+    this.clear = this.clear.bind(this);
+    this.close = this.close.bind(this);
 
+    // Initializing the levelDB
     level(baseCachePath, (err, db) => {
       if (err) {
         throw err;
       }
-      this.db = db;
 
-      // call initializer handler
+      this.db = db;
       onIntializeHandler(this);
     });
   }
@@ -56,6 +58,7 @@ class Database {
    * Adds a clientId to the cache of that topic
    * @param {string]} topic - the topic to subscribe to
    * @param {string} clientId - the client id
+   * @param {(Error|null, string|null)=>void} callback - the callback to be called after action completes or errs.
    */
   subscribeToTopic(topic, clientId, callback = defaultCallback) {
     const clientIdKeyForTopic = this.models.topics.generateClientIdForTopic(
@@ -81,6 +84,7 @@ class Database {
    * Removes a clientId from the cache file of that topic
    * @param {string} topic - the topic to unsubscribe from
    * @param {string} clientId - the client id
+   * @param {(Error|null)=>void} callback - the callback to be called after action completes or errs.
    */
   unsubscribeToTopic(topic, clientId, callback = defaultCallback) {
     const clientIdKeyForTopic = this.models.topics.generateClientIdForTopic(
@@ -94,6 +98,7 @@ class Database {
    * Adds the given message to the given topic
    * @param {string} topic - the topic to publish to
    * @param {{[key: string]: any}} message - the message to persist
+   * @param {(Error|null)=>void} callback - the callback to be called after action completes or errs.
    */
   addMessageToTopic(topic, message, callback = defaultCallback) {
     // save the message. The Uuid seem to be in order
@@ -176,6 +181,7 @@ class Database {
    * Deletes a given message from the queue
    * @param {string} clientId - clientId is the ID of the subscriber
    * @param {string} messageId - messageId is the ID of message to be removed
+   * @param {(Error|null)=>void} callback - the callback to be called after action completes or errs.
    */
   deleteMessage(clientId, messageId, callback = defaultCallback) {
     // remove the messageId from the cache for given subscriber
@@ -192,6 +198,7 @@ class Database {
 
   /**
    * Clears the data in the models
+   * @param {(Error|null, string|null)=>void} callback - the callback to be called after action completes or errs.
    */
   clear(callback = defaultCallback) {
     this.db.clear(callback);

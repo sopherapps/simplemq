@@ -116,7 +116,7 @@ class Model {
    * Removes a given record from the cache
    * @param {any} db - the db instance returned from calling level
    * @param {string} id - the id of the given record to be removed
-   * @param {(Error|null, any)=>void} callback - the callbakc to be called on error on success of the operation
+   * @param {(Error|null)=>void} callback - the callback to be called on error on success of the operation
    */
   removeRecord(db, id, callback = defaultCallback) {
     const key = this.generateKey(id);
