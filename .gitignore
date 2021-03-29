@@ -118,3 +118,4 @@ dist
 # cache
 *.db
 simple-mq-cache
+leveldb-cache

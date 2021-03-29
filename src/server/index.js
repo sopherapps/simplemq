@@ -7,7 +7,7 @@ const { grpcHandlerFactory } = require("./grpc-handlers");
 const { PROTOBUF_FILE_PATH } = require("../config");
 
 // const { Database } = require("./db/lokijs");
-const { Database } = require("./db/cacache");
+const { Database } = require("./db/leveldb");
 
 class Server {
   /**
@@ -21,7 +21,7 @@ class Server {
       ttlInterval = 1000 * 60 * 60 * 24,
       streamInterval = 1000,
       dbFilePath = "queue.db",
-      isPersistent = false,
+      isPersistent = true,
       maxWaitBeforeForceShutDown = 2000,
     } = options;
     this.port = port;
@@ -66,47 +66,53 @@ class Server {
 
   start() {
     const onDbInitialization = (dbInstance) => {
+      const initializeGrpcServer = () => {
+        // Load gRPC package definitions
+        const packageDefinition = protoLoader.loadSync(PROTOBUF_FILE_PATH, {});
+        const grpcObject = grpc.loadPackageDefinition(packageDefinition);
+        const { articleCurator } = grpcObject;
+
+        // the server
+        this.server = new grpc.Server();
+        const serverIpAndPort = `0.0.0.0:${this.port}`;
+        this.server.bind(
+          serverIpAndPort,
+          grpc.ServerCredentials.createInsecure()
+        );
+
+        // Add services to the Server
+        this.server.addService(
+          articleCurator.MessageQueue.service,
+          grpcHandlerFactory(dbInstance, {
+            streamInterval: this.streamInterval,
+          })
+        );
+
+        // start the Server
+        this.server.start();
+        // eslint-disable-next-line no-console
+        console.log(`Server running on ${serverIpAndPort}`);
+        // eslint-disable-next-line no-console
+        console.log(`Environment NODE_ENV = ${process.env.NODE_ENV}`);
+      };
+
       if (process.env.NODE_ENV && process.env.NODE_ENV.trim() === "test") {
-        dbInstance.clear();
+        dbInstance.clear((err) => {
+          if (err) {
+            throw err;
+          }
+
+          initializeGrpcServer();
+        });
       }
-
-      // Load gRPC package definitions
-      const packageDefinition = protoLoader.loadSync(PROTOBUF_FILE_PATH, {});
-      const grpcObject = grpc.loadPackageDefinition(packageDefinition);
-      const { articleCurator } = grpcObject;
-
-      // the server
-      this.server = new grpc.Server();
-      const serverIpAndPort = `0.0.0.0:${this.port}`;
-      this.server.bind(
-        serverIpAndPort,
-        grpc.ServerCredentials.createInsecure()
-      );
-
-      // Add services to the Server
-      this.server.addService(
-        articleCurator.MessageQueue.service,
-        grpcHandlerFactory(dbInstance, {
-          streamInterval: this.streamInterval,
-        })
-      );
-
-      // start the Server
-      this.server.start();
-      // eslint-disable-next-line no-console
-      console.log(`Server running on ${serverIpAndPort}`);
-      // eslint-disable-next-line no-console
-      console.log(`Environment NODE_ENV = ${process.env.NODE_ENV}`);
     };
 
     // Initialize the database, then on finishing, initialize the gRPC Server
-    // eslint-disable-next-line no-new
-    // new Database(
-    //   this.dbFilePath,
-    //   { isPersistent: this.isPersistent },
-    //   onDbInitialization
-    // );
-    this.db = new Database(undefined, {}, onDbInitialization);
+    this.db = new Database(
+      undefined,
+      { isPersistent: this.isPersistent },
+      onDbInitialization
+    );
   }
 
   /**
