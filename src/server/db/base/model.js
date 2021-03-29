@@ -19,11 +19,16 @@ class Model {
     this.clearOldRecordsInterval = undefined;
 
     // bind methods
-    this.clearOldRecords = this.clearOldRecords.bind(this);
+    this.generateKey = this.generateKey.bind(this);
+    this.getIdFromKey = this.getIdFromKey.bind(this);
+    this.getKeyRange = this.getKeyRange.bind(this);
     this.addRecord = this.addRecord.bind(this);
     this.getRecord = this.getRecord.bind(this);
-    this.cleanUp = this.cleanUp.bind(this);
+    this.removeRecord = this.removeRecord.bind(this);
+    this.streamValues = this.streamValues.bind(this);
     this.clear = this.clear.bind(this);
+    this.clearOldRecords = this.clearOldRecords.bind(this);
+    this.cleanUp = this.cleanUp.bind(this);
 
     if (this.ttl) {
       this.clearOldRecordsInterval = setInterval(() => {
@@ -34,10 +39,20 @@ class Model {
     }
   }
 
+  /**
+   * Generates the key that is specific to this collection
+   * @param {string} id - the particular id of the item
+   * @returns {string}
+   */
   generateKey(id) {
     return `${this.collectionName}:${id}`;
   }
 
+  /**
+   * Removes the id from the key that was generated using the id and the collection name
+   * @param {string} key - the enhanced string that contains the id and the collection name
+   * @returns {string}
+   */
   // eslint-disable-next-line class-methods-use-this
   getIdFromKey(key) {
     return key.split(":")[1];
@@ -56,6 +71,7 @@ class Model {
 
   /**
    * Adds a record to the collection
+   * @param {any} db - the db instance returned from calling level
    * @param {any} id - the id of the record
    * @param {string} data - the data for the new record
    * @param {(Error, any)=>void} callback - the callback to be called after action completes or errs.
@@ -80,10 +96,10 @@ class Model {
 
   /**
    * Gets a record from this model's collection
+   * @param {any} db - the db instance returned from calling level
    * @param {any} id - the id to be used to find that particular record
    * @param {(Error|null, string|null)=>void} callback - the callback to be called after action completes or errs.
    */
-  // eslint-disable-next-line class-methods-use-this
   getRecord(db, id, callback = defaultCallback) {
     const key = this.generateKey(id);
     db.get(key)
@@ -98,10 +114,10 @@ class Model {
 
   /**
    * Removes a given record from the cache
+   * @param {any} db - the db instance returned from calling level
    * @param {string} id - the id of the given record to be removed
    * @param {(Error|null, any)=>void} callback - the callbakc to be called on error on success of the operation
    */
-  // eslint-disable-next-line class-methods-use-this
   removeRecord(db, id, callback = defaultCallback) {
     const key = this.generateKey(id);
     db.del(key)
@@ -113,7 +129,9 @@ class Model {
 
   /**
    * Streams the values in lexicographical order of the keys
+   * @param {any} db - the db instance returned from calling level
    * @param {{ onData = (any) => void, onError = Error => void, onClose = () => void, onEnd = () => void}} handlers - the stream handlers
+   * @param {any} options - the options to be passed to the db.createValueStream method of level
    */
   streamValues(db, handlers = {}, options = {}) {
     const {
@@ -134,12 +152,11 @@ class Model {
       })
       .on("close", () => onClose())
       .on("end", () => onEnd());
-
-    // stream.read();
   }
 
   /**
-   * Clears the cache
+   * Clears the database
+   * @param {any} db - the db instance returned from calling level
    * @param {(Error, any)=>void} callback - the callback to be called after action completes or errs.
    */
   // eslint-disable-next-line class-methods-use-this
@@ -149,6 +166,7 @@ class Model {
 
   /**
    * Method removes records that are stale i.e. have lasted for longer than ttl
+   * @param {any} db - the db instance returned from calling level
    */
   clearOldRecords(db) {
     if (!this.ttl || !db) {
@@ -186,6 +204,7 @@ class Model {
             this.cleanUpInProgress = false;
           })
           .catch((err) => {
+            this.cleanUpInProgress = false;
             throw err;
           });
       });
