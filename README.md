@@ -15,13 +15,14 @@ This package includes:
 
 One can chose to use any or both of these two components.
 
-## Dependencies
+## Major Dependencies
 
 - [gRPC](https://grpc.io/)
   - [protocol buffers 3](https://developers.google.com/protocol-buffers/docs/overview)
   - [Protobuf.js](https://www.npmjs.com/package/protobufjs)
 - [Nodejs](https://nodejs.org/en/)
-- [Lokijs](https://github.com/techfort/LokiJS/)
+- [level](https://github.com/Level/level)
+- [levelDB](https://github.com/google/leveldb)
 
 ## Getting Started
 
@@ -52,8 +53,7 @@ One can chose to use any or both of these two components.
   - the `ttl` i.e. time to live in milliseconds for the messages before they are considered stale
   - the `ttlInterval` i.e. the interval in milliseconds for clearing out stale messages
   - the `streamInterval` i.e. the interval at which messages are to be sent to any listening client
-  - the `dbFilePath` i.e. the path to the lokijs database to persist the messages, subscribers and topics
-  - the `isPersistent` i.e. whether to persist the data across restarts of the server
+  - the `dbFilePath` i.e. the base path to the leveldb database to persist the messages, subscribers and topics
   - the `maxWaitBeforeForcedShutDown` i.e. the number of milliseconds to wait after a shutdown has been initiated for a forceful shutdown to come into action
 
   ```Javascript
@@ -99,7 +99,7 @@ One can chose to use any or both of these two components.
   - a random `clientId` to identify the client
 
   ```Javascript
-  const {Client} = require('simplemq');
+  const {Client} = require('@sopherapps/simplemq');
 
   const client = new Client({
       ipAddress: 'localhost', // the ip address, for now we will assume the server is on this computer
@@ -206,8 +206,7 @@ Coming soon.
 
 ## ToDo
 
-- [x] Make lokijs persist to file
-- [ ] There might be need for removeSubscriber function
+- [x] Make leveldb as persistent store
 - [x] Modularize the DB module itself into TOPICS, MESSAGES AND SUBSCRIBERS
 - [x] Add JavaScript client code
 - [ ] Create python client package
