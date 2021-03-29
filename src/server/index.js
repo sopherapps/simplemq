@@ -12,7 +12,7 @@ const { defaultCachePath } = require("./db/utils");
 class Server {
   /**
    * The server class that initializes the message queue
-   * @param {{port?: number, ttl?: number, ttlInterval?: number, streamInterval?: number}} options - the options for starting the Server
+   * @param {{port?: number, ttl?: number, ttlInterval?: number, streamInterval?: number, dbFilePath?: string, maxWaitBeforeForceShutDown?: number}} options - the options for starting the Server
    */
   constructor(options = {}) {
     const {
@@ -40,6 +40,9 @@ class Server {
     this.initializeCleanUp();
   }
 
+  /**
+   * Sets up signal handlers so as to ensure clean reaction to such things as Keyboard interrupts
+   */
   initializeCleanUp() {
     process.on("exit", () => {
       this.stop();
@@ -59,6 +62,9 @@ class Server {
     });
   }
 
+  /**
+   * Starts the message broker server
+   */
   start() {
     const onDbInitialization = (dbInstance) => {
       const initializeGrpcServer = () => {
@@ -106,6 +112,7 @@ class Server {
 
   /**
    * Stops the server to receive no more requests
+   * @param {()=>void} callback - the callback to be called after action completes or errs.
    */
   stop(callback = () => {}) {
     const closeDatabase = () => {
