@@ -4,7 +4,7 @@ A simple message queue server that requires only nodejs.
 It is can be used to pass JSON/string messages from one application to another in an
 asynchronous way across the network.
 
-Do note that **this package is still under heavy development**
+Do note that **this package is not production-ready and its development stalled.**
 
 ## Components
 
